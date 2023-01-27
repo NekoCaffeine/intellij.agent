@@ -40,7 +40,7 @@ public class ImageOverride {
             final int width = logoImage.getWidth(null), height = logoImage.getHeight(null);
             window.setBounds((screenSize.width - width) / 2, (screenSize.height - height) / 2, width, height);
         }
-        graphics.drawImage(logoImage, 0, 0, null);
+        window.getGraphics().drawImage(logoImage, 0, 0, window.getWidth(), window.getHeight(), null);
     }
     
     public static void showProgress(final Window window, final double progress) { }

@@ -39,6 +39,8 @@ public interface Build {
         
         String intellijAgentPath = "missing";
         
+        String intellijDebugAgentPath = "missing";
+        
     }
     
     Workspace workspace = Workspace.here();
@@ -90,9 +92,9 @@ public interface Build {
         });
     }
     
-    static void push() {
+    static void push(final boolean debug = true) {
         final Path build = build();
-        final Path agentDir = Path.of(config.intellijAgentPath);
+        final Path agentDir = Path.of(debug ? config.intellijDebugAgentPath : config.intellijAgentPath);
         if (Files.isDirectory(agentDir)) {
             --agentDir;
             build | root -> root >> agentDir;

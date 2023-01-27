@@ -1,5 +1,6 @@
 /logs/
 /build/output/
+/build/GithubConfig.default.cfg
 /.idea/
 /intellij.agent.iml
 /build/script.iml
