@@ -25,7 +25,7 @@ public interface Remote {
     
     Github github = Github.make(Github.authorization(githubConfig.token));
     
-    Github.Repo repo = github["NekoCaffeine"]["amadeus.maho.intellij"];
+    Github.Repo repo = github["NekoCaffeine"]["intellij.agent"];
     
     static void release(final Path distributive = build()) = Distributive.release(workspace, module, repo, List.of(distributive));
     
