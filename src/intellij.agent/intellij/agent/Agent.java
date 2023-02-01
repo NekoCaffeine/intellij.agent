@@ -8,12 +8,14 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.AccessibleObject;
 import java.security.ProtectionDomain;
+import java.util.List;
 
 import jdk.internal.misc.Unsafe;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -60,7 +62,7 @@ public class Agent implements ClassFileTransformer {
             return null;
         try {
             switch (name) {
-                case "com/intellij/ide/plugins/PluginManagerCore" -> {
+                case "com/intellij/ide/plugins/PluginManagerCore"               -> {
                     System.err.println("Transform -> com.intellij.ide.plugins.PluginManagerCore");
                     final ClassWriter writer = { 0 };
                     final ClassReader reader = { data };
@@ -69,7 +71,7 @@ public class Agent implements ClassFileTransformer {
                         public MethodVisitor visitMethod(final int access, final String name, final String descriptor, final String signature, final String exceptions[]) {
                             if ("checkBuildNumberCompatibility".equals(name) && (
                                     "(Lcom/intellij/ide/plugins/IdeaPluginDescriptor;Lcom/intellij/openapi/util/BuildNumber;Ljava/lang/Runnable;)Lcom/intellij/ide/plugins/PluginLoadingError;".equals(descriptor) ||
-                                            "(Lcom/intellij/ide/plugins/IdeaPluginDescriptor;Lcom/intellij/openapi/util/BuildNumber;)Lcom/intellij/ide/plugins/PluginLoadingError;".equals(descriptor))) {
+                                    "(Lcom/intellij/ide/plugins/IdeaPluginDescriptor;Lcom/intellij/openapi/util/BuildNumber;)Lcom/intellij/ide/plugins/PluginLoadingError;".equals(descriptor))) {
                                 System.err.println("Transform -> com.intellij.ide.plugins.PluginManagerCore#checkBuildNumberCompatibility");
                                 final MethodVisitor visitor = super.visitMethod(access, name, descriptor, signature, exceptions);
                                 visitor.visitCode();
@@ -84,7 +86,7 @@ public class Agent implements ClassFileTransformer {
                     }, 0);
                     return writer.toByteArray();
                 }
-                case "com/intellij/ide/plugins/IdeaPluginDescriptorImpl" -> {
+                case "com/intellij/ide/plugins/IdeaPluginDescriptorImpl"        -> {
                     System.err.println("Transform -> com.intellij.ide.plugins.IdeaPluginDescriptorImpl");
                     final ClassWriter writer = { 0 };
                     final ClassReader reader = { data };
@@ -106,7 +108,7 @@ public class Agent implements ClassFileTransformer {
                     }, 0);
                     return writer.toByteArray();
                 }
-                case "java/lang/reflect/AccessibleObject"                      -> {
+                case "java/lang/reflect/AccessibleObject"                       -> {
                     System.err.println("Transform -> java.lang.reflect.AccessibleObject");
                     final ClassWriter writer = { 0 };
                     final ClassReader reader = { data };
@@ -128,7 +130,7 @@ public class Agent implements ClassFileTransformer {
                     }, 0);
                     return writer.toByteArray();
                 }
-                case "jdk/internal/reflect/Reflection"                         -> {
+                case "jdk/internal/reflect/Reflection"                          -> {
                     System.err.println("Transform -> jdk.internal.reflect.Reflection");
                     final ClassWriter writer = { 0 };
                     final ClassReader reader = { data };
@@ -168,7 +170,7 @@ public class Agent implements ClassFileTransformer {
                         public MethodVisitor visitMethod(final int access, final String methodName, final String descriptor, final String signature, final String exceptions[]) {
                             if ("processActionElement".equals(methodName) || "processGroupElement".equals(methodName)) {
                                 return new MethodVisitor(ASM9, super.visitMethod(access, methodName, descriptor, signature, exceptions)) {
-    
+                                    
                                     @Override
                                     public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
                                         if ("isInternal".equals(name)) {
@@ -183,6 +185,30 @@ public class Agent implements ClassFileTransformer {
                             }
                             return super.visitMethod(access, methodName, descriptor, signature, exceptions);
                         }
+                    }, 0);
+                    return writer.toByteArray();
+                }
+                case "com/intellij/psi/impl/source/tree/CompositeElement"       -> {
+                    System.err.println("Transform -> com.intellij.psi.impl.source.tree.CompositeElement");
+                    final List<String> volatileNames = List.of("firstChild", "lastChild");
+                    final ClassWriter writer = { 0 };
+                    final ClassReader reader = { data };
+                    reader.accept(new ClassVisitor(ASM9, writer) {
+                        @Override
+                        public FieldVisitor visitField(final int access, final String name, final String descriptor, final String signature, final Object value)
+                                = super.visitField(volatileNames.contains(name) ? access | ACC_VOLATILE : access, name, descriptor, signature, value);
+                    }, 0);
+                    return writer.toByteArray();
+                }
+                case "com/intellij/psi/impl/source/tree/TreeElement"            -> {
+                    System.err.println("Transform -> com.intellij.psi.impl.source.tree.TreeElement");
+                    final List<String> volatileNames = List.of("myNextSibling", "myPrevSibling", "myParent");
+                    final ClassWriter writer = { 0 };
+                    final ClassReader reader = { data };
+                    reader.accept(new ClassVisitor(ASM9, writer) {
+                        @Override
+                        public FieldVisitor visitField(final int access, final String name, final String descriptor, final String signature, final Object value)
+                                = super.visitField(volatileNames.contains(name) ? access | ACC_VOLATILE : access, name, descriptor, signature, value);
                     }, 0);
                     return writer.toByteArray();
                 }
