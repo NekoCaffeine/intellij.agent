@@ -212,6 +212,33 @@ public class Agent implements ClassFileTransformer {
                     }, 0);
                     return writer.toByteArray();
                 }
+                case "com/intellij/openapi/editor/impl/FontFamilyServiceImpl"            -> {
+                    System.err.println("Transform -> com.intellij.openapi.editor.impl.FontFamilyServiceImpl#getFont2dMethod");
+                    final ClassWriter writer = { 0 };
+                    final ClassReader reader = { data };
+                    reader.accept(new ClassVisitor(ASM9, writer) {
+                        @Override
+                        public MethodVisitor visitMethod(final int access, final String methodName, final String descriptor, final String signature, final String exceptions[]) {
+                            if ("getFont2dMethod".equals(methodName)) {
+                                return new MethodVisitor(ASM9, super.visitMethod(access, methodName, descriptor, signature, exceptions)) {
+                                    
+                                    @Override
+                                    public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
+                                        if ("warn".equals(name)) {
+                                            System.err.println("Transform -> com.intellij.openapi.actionSystem.impl.ActionManagerImpl#" + methodName);
+                                            visitInsn(POP);
+                                            visitInsn(POP);
+                                        } else
+                                            super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+                                    }
+                                    
+                                };
+                            }
+                            return super.visitMethod(access, methodName, descriptor, signature, exceptions);
+                        }
+                    }, 0);
+                    return writer.toByteArray();
+                }
             }
         } catch (Throwable t) { t.printStackTrace(); }
         return null;
