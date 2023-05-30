@@ -12,25 +12,26 @@ import javax.swing.ImageIcon;
 
 import amadeus.maho.lang.SneakyThrows;
 
+import static java.awt.Image.SCALE_SMOOTH;
+
 public class ImageOverride {
     
     public static class Inner {
         
-        private static final ImageIcon icon;
+        private static final Image image;
         
         static {
             final String iconUrl = System.getProperty("intellij.iconOverride");
-            if (iconUrl != null)
-                icon = { image(iconUrl) };
-            else
-                icon = null;
+            image = iconUrl != null ? image(iconUrl) : null;
         }
         
     }
     
     private static volatile Image logoImage;
     
-    public static Icon icon(final Icon source) = Inner.icon;
+    public static Icon icon(final Icon source, final int size) = new ImageIcon(Inner.image.getScaledInstance(size, size, SCALE_SMOOTH));
+    
+    public static Image icon(final Image source, final int size) = Inner.image.getScaledInstance(size, size, SCALE_SMOOTH);
     
     @SneakyThrows
     public static void paint(final Window window, final Graphics graphics) {

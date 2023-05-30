@@ -85,7 +85,7 @@ public interface Build {
                 (path, _) -> path.toString().endsWith(Javac.CLASS_SUFFIX)));
         consumer.accept(classes, UnaryOperator.identity());
         asm.stream().flatMap(Module.Dependency::flat).forEach(dependency -> dependency.classes() | root -> consumer.accept(root, path -> shadow / (root % path).toString()));
-        final Map<String, Jar.Result> pack = Jar.pack(workspace, module, Jar.manifest(null, new Jar.Agent("intellij.agent.Agent"), classPath), Jar.WITHOUT_VERSION_FORMATTER);
+        final Map<String, Jar.Result> pack = Jar.pack(workspace, module, Jar.manifest(null, new Jar.Agent("intellij.agent.Agent"), classPath), Jar.defaultCopier, Jar.WITHOUT_VERSION_FORMATTER);
         return Distributive.zip(workspace, module, root -> {
             classPath.copyTo(root);
             pack.values().forEach(result -> result.modules() >> root);

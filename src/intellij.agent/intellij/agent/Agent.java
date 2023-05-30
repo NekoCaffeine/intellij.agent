@@ -22,9 +22,13 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class Agent implements ClassFileTransformer {
     
+    public static Instrumentation instrumentation;
+    
     public static void premain(final String agentArgs, final Instrumentation instrumentation) throws UnmodifiableClassException, IOException {
         if (!instrumentation.isRetransformClassesSupported())
             throw new UnsupportedOperationException("Retransform Class");
+        System.setProperty("amadeus.maho.instrumentation.provider", Agent.class.getName());
+        Agent.instrumentation = instrumentation;
         AccessibleObject.class.getName();
         instrumentation.addTransformer(new Agent(), true);
         instrumentation.retransformClasses(AccessibleObject.class);
@@ -213,19 +217,20 @@ public class Agent implements ClassFileTransformer {
                     return writer.toByteArray();
                 }
                 case "com/intellij/openapi/editor/impl/FontFamilyServiceImpl"            -> {
-                    System.err.println("Transform -> com.intellij.openapi.editor.impl.FontFamilyServiceImpl#getFont2dMethod");
+                    System.err.println("Transform -> com.intellij.openapi.editor.impl.FontFamilyServiceImpl");
                     final ClassWriter writer = { 0 };
                     final ClassReader reader = { data };
+                    final List<String> names = List.of("<init>", "<clinit>", "getFont2dMethod", "getDescriptorByFontImpl");
                     reader.accept(new ClassVisitor(ASM9, writer) {
                         @Override
                         public MethodVisitor visitMethod(final int access, final String methodName, final String descriptor, final String signature, final String exceptions[]) {
-                            if ("getFont2dMethod".equals(methodName)) {
+                            if (names.contains(methodName)) {
                                 return new MethodVisitor(ASM9, super.visitMethod(access, methodName, descriptor, signature, exceptions)) {
                                     
                                     @Override
                                     public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
                                         if ("warn".equals(name)) {
-                                            System.err.println("Transform -> com.intellij.openapi.actionSystem.impl.ActionManagerImpl#" + methodName);
+                                            System.err.println("Transform -> com.intellij.openapi.editor.impl.FontFamilyServiceImpl#" + methodName);
                                             visitInsn(POP);
                                             visitInsn(POP);
                                         } else
@@ -233,6 +238,27 @@ public class Agent implements ClassFileTransformer {
                                     }
                                     
                                 };
+                            }
+                            return super.visitMethod(access, methodName, descriptor, signature, exceptions);
+                        }
+                    }, 0);
+                    return writer.toByteArray();
+                }
+                case "com/intellij/openapi/actionSystem/impl/ActionManagerImplKt"            -> {
+                    System.err.println("Transform -> com.intellij.openapi.actionSystem.impl.ActionManagerImplKt");
+                    final ClassWriter writer = { 0 };
+                    final ClassReader reader = { data };
+                    reader.accept(new ClassVisitor(ASM9, writer) {
+                        @Override
+                        public MethodVisitor visitMethod(final int access, final String methodName, final String descriptor, final String signature, final String exceptions[]) {
+                            if ("reportKeymapNotFoundWarning".equals(methodName)) {
+                                System.err.println("Transform -> com.intellij.openapi.actionSystem.impl.ActionManagerImplKt#" + methodName);
+                                final MethodVisitor visitor = super.visitMethod(access, methodName, descriptor, signature, exceptions);
+                                visitor.visitCode();
+                                visitor.visitInsn(RETURN);
+                                visitor.visitMaxs(0, 2);
+                                visitor.visitEnd();
+                                return new MethodVisitor(ASM9) { };
                             }
                             return super.visitMethod(access, methodName, descriptor, signature, exceptions);
                         }
