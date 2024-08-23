@@ -2,6 +2,7 @@ package intellij.agent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -18,6 +19,8 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 
+import amadeus.maho.lang.SneakyThrows;
+
 import static org.objectweb.asm.Opcodes.*;
 
 public class Agent implements ClassFileTransformer {
@@ -28,8 +31,10 @@ public class Agent implements ClassFileTransformer {
         if (!instrumentation.isRetransformClassesSupported())
             throw new UnsupportedOperationException("Retransform Class");
         System.setProperty("amadeus.maho.instrumentation.provider", Agent.class.getName());
+        System.setProperty("amadeus.maho.skip.acp", "true");
         Agent.instrumentation = instrumentation;
         AccessibleObject.class.getName();
+        instrumentation.addTransformer(AllClassesPublic.instance);
         instrumentation.addTransformer(new Agent(), true);
         instrumentation.retransformClasses(AccessibleObject.class);
         ModuleHelper.openAllBootModule();
@@ -61,9 +66,18 @@ public class Agent implements ClassFileTransformer {
     }
     
     @Override
+    @SneakyThrows
     public byte[] transform(final ClassLoader loader, final String name, final Class<?> target, final ProtectionDomain domain, final byte data[]) throws IllegalClassFormatException {
         if (name == null)
             return null;
+        if (name.startsWith("com/intellij/")) {
+            final InputStream resource = Agent.class.getResourceAsStream("/redirect/" + name + ".class");
+            if (resource != null)
+                try (resource) {
+                    System.err.println("Replace -> " + name.replace('/', '.'));
+                    return resource.readAllBytes();
+                }
+        }
         try {
             switch (name) {
                 case "com/intellij/ide/plugins/PluginManagerCore"               -> {

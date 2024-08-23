@@ -48,7 +48,7 @@ public interface Build {
     IntellijConfig config = workspace.config().load(new IntellijConfig()).let(it -> {
         {
             if (!Files.isDirectory(Path.of(it.intellijPath)))
-                throw new IllegalArgumentException("IntellijConfig.default.cfg # invalid intellijPath: " + it.intellijPath);
+                throw new IllegalArgumentException(STR."IntellijConfig.default.cfg # invalid intellijPath: \{it.intellijPath}");
         }
     });
     
@@ -57,7 +57,7 @@ public interface Build {
     Set<Module.Dependency> asm = maven.resolveModuleDependencies(new Project.Dependency.Holder().all("org.ow2.asm:asm:+").dependencies());
     
     // avoid parsing unneeded libraries, thus improving compilation speed
-    List<String> shouldInCompile = Stream.of("3rd-party-rt", "app", "platform-api", "platform-impl", "util").map(name -> name + Jar.SUFFIX).collect(Collectors.toList());
+    List<String> shouldInCompile = Stream.of("3rd-party-rt", "app", "app-client", "platform-api", "platform-impl", "util", "util-8").map(name -> name + Jar.SUFFIX).collect(Collectors.toList());
     
     static Set<Module.Dependency> dependencies() = IDEA.DevKit.attachLocalInstance(Path.of(config.intellijPath), Set.of(), path -> shouldInCompile.contains(path.getFileName().toString())) *= asm;
     
@@ -69,19 +69,20 @@ public interface Build {
     
     static void sync() {
         IDEA.deleteLibraries(workspace);
-        IDEA.generateAll(workspace, "17", false, List.of(Module.build(), module));
+        IDEA.generateAll(workspace, "21", false, List.of(Module.build(), module));
     }
     
     static Path build() {
         workspace.clean(module).flushMetadata();
         Javac.compile(workspace, module, useModulePath::contains, args -> Javac.addReadsAllUnnamed(args, module));
         final Path classes = workspace.output(Javac.CLASSES_DIR, module), shadow = classes / module.name() / module.name().replace('.', '/');
+        classes / module.name() / "com" >>> classes / module.name() / "redirect" / "com";
         final RemapHandler.ASMRemapper remapper = new RemapHandler() {
             @Override
             public String mapInternalName(final String name) = name.startsWith("org/objectweb/asm") ? name.replace("org/objectweb/asm", "intellij/agent/org/objectweb/asm") : name;
         }.remapper();
         final BiConsumer<Path, UnaryOperator<Path>> consumer = (root, mapper) -> Files.walkFileTree(root, FileHelper.visitor(
-                (path, _) -> ClassWriter.toBytecode(visitor -> ASMHelper.newClassReader(Files.readAllBytes(path)).accept(new ClassRemapper(visitor, remapper), 0)) >> mapper.apply(path).let(it -> ~-it),
+                (path, _) -> ClassWriter.toBytecode(visitor -> ASMHelper.newClassReader(path).accept(new ClassRemapper(visitor, remapper), 0)) >> mapper.apply(path).let(it -> ++it),
                 (path, _) -> path.toString().endsWith(Javac.CLASS_SUFFIX)));
         consumer.accept(classes, UnaryOperator.identity());
         asm.stream().flatMap(Module.Dependency::flat).forEach(dependency -> dependency.classes() | root -> consumer.accept(root, path -> shadow / (root % path).toString()));
@@ -99,7 +100,7 @@ public interface Build {
             --agentDir;
             build | root -> root >> agentDir;
         } else
-            throw new IllegalArgumentException("IntellijAgentConfig.default.cfg # invalid intellijPath: " + config.intellijAgentPath);
+            throw new IllegalArgumentException(STR."IntellijAgentConfig.default.cfg # invalid intellijPath: \{config.intellijAgentPath}");
     }
     
 }

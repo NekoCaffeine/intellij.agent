@@ -16,8 +16,8 @@ public class LogoOverride implements ClassFileTransformer { // The logo of Intel
     
     @Override
     public byte[] transform(final ClassLoader loader, final String name, final Class<?> target, final ProtectionDomain domain, final byte data[]) throws IllegalClassFormatException {
-        if ("com/intellij/ui/Splash".equals(name)) {
-            System.err.println("Transform -> com.intellij.ui.Splash");
+        if ("com/intellij/platform/ide/bootstrap/Splash".equals(name)) {
+            System.err.println("Transform -> com.intellij.platform.ide.bootstrap.Splash");
             final ClassWriter writer = { 0 };
             final ClassReader reader = { data };
             reader.accept(new ClassVisitor(ASM9, writer) {
@@ -32,17 +32,6 @@ public class LogoOverride implements ClassFileTransformer { // The logo of Intel
                         visitor.visitMethodInsn(INVOKESTATIC, "intellij/agent/ImageOverride", "paint", "(Ljava/awt/Window;Ljava/awt/Graphics;)V", false);
                         visitor.visitInsn(RETURN);
                         visitor.visitMaxs(2, 2);
-                        visitor.visitEnd();
-                        return null;
-                    } else if ("showProgress".equals(name) && "(D)V".equals(descriptor)) {
-                        System.err.println("Transform -> com.intellij.ui.Splash#showProgress");
-                        final MethodVisitor visitor = super.visitMethod(access, name, descriptor, signature, exceptions);
-                        visitor.visitCode();
-                        visitor.visitVarInsn(ALOAD, 0);
-                        visitor.visitVarInsn(DLOAD, 1);
-                        visitor.visitMethodInsn(INVOKESTATIC, "intellij/agent/ImageOverride", "showProgress", "(Ljava/awt/Window;D)V", false);
-                        visitor.visitInsn(RETURN);
-                        visitor.visitMaxs(3, 3);
                         visitor.visitEnd();
                         return null;
                     }

@@ -14,6 +14,8 @@ public abstract class RecursionGuard<Key> {
     
     public abstract <T, E extends Throwable> T computePreventingRecursion(final Key key, final boolean memoize, final ThrowableComputable<T, E> computation) throws E;
     
+    public StackStamp markStack() = RecursionManager.markStack();
+    
     public abstract List<? extends Key> currentStack();
     
     public abstract void prohibitResultCaching(Key since);

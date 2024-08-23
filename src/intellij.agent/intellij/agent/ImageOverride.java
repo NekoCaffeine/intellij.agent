@@ -44,8 +44,6 @@ public class ImageOverride {
         window.getGraphics().drawImage(logoImage, 0, 0, window.getWidth(), window.getHeight(), null);
     }
     
-    public static void showProgress(final Window window, final double progress) { }
-    
     @SneakyThrows
     public static Image image(final String path) = ImageIO.read(Path.of(path).toAbsolutePath().toFile());
     

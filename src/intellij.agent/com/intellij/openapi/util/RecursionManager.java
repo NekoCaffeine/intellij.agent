@@ -49,6 +49,14 @@ public final class RecursionManager {
         return () -> stamp == ourStack.get().reentrancyCount;
     }
     
+    public static void runInNewContext(final Runnable runnable) {
+        final CalculationStack currentContext = ourStack.get();
+        try {
+            ourStack.set(new CalculationStack());
+            runnable.run();
+        } finally { ourStack.set(currentContext); }
+    }
+    
     
     private static class MyKey {
         
@@ -63,7 +71,7 @@ public final class RecursionManager {
         }
         
         @Override
-        public boolean equals(Object obj) = obj instanceof MyKey myKey && guardId.equals(myKey.guardId) && userObject == myKey.userObject;
+        public boolean equals(Object obj) = obj instanceof MyKey myKey && guardId.equals(myKey.guardId) && userObject.equals(myKey.userObject);
         
         @Override
         public int hashCode() = myHashCode;
